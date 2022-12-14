@@ -3,9 +3,8 @@ import torch.optim as optim
 import torch.nn as nn
 
 import sys
-sys.path.append("G:/My Drive/Biostatistics/Dissertation")
+sys.path.append("PATH")
 from Item_Level.Simulation.data_simulation_md import simJM_item_MD
-#from Item_Level.Simulation.data_simulation_items import simJM_item
 from NN.Models.MATCH_item.MATCH import MATCH
 from NN.Models.MATCH_item.functions import (get_tensors, augment, format_output,
                                     CE_loss, ordinalOHE, init_weights)
@@ -28,7 +27,7 @@ landmark_times = [2,3,4,5]
 pred_windows = [1,2]
 
 
-n_sim = 1
+n_sim = 2
 AUC_array = np.zeros((n_sim, len(landmark_times), len(pred_windows)))
 iAUC_array = np.zeros((n_sim, len(landmark_times)))
 true_AUC_array = np.zeros((n_sim, len(landmark_times), len(pred_windows)))
