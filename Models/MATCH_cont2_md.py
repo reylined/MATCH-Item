@@ -3,7 +3,7 @@ import torch.optim as optim
 import torch.nn as nn
 
 import sys
-sys.path.append("G:/My Drive/Biostatistics/Dissertation")
+sys.path.append("PATH")
 from NN.Models.MATCH.MATCH import MATCH
 from NN.Models.MATCH.functions import (get_tensors, augment, format_output,
                                             CE_loss, init_weights)
