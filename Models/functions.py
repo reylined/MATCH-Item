@@ -77,6 +77,7 @@ def get_tensors(df, long = ["Y1","Y2","Y3"], base = ["X1","X2"], obstime = "obst
         return x_long, x_base, mask, e, t, obs_time
     else: return x_long, mask, e, t, obs_time
 
+    
 def ordinalOHE(x, ordinal=True, n_cat=5):
     # to ordinal one-hot-encoding
     x = torch.nn.functional.one_hot(x, num_classes=n_cat)
@@ -90,51 +91,6 @@ def ordinalOHE(x, ordinal=True, n_cat=5):
                         ind += 1
     return x
 
-
-
-'''
-def augment(long, base, mask, e, t):
-    I = long.shape[0]
-    q = long.shape[1]
-    J = long.shape[2]
-    p = base.shape[1]
-    subjid = torch.arange(I)
-    
-    mask_tmp = torch.FloatTensor(0,q,J)
-    long_tmp = torch.FloatTensor(0,q,J)
-    base_tmp = torch.FloatTensor(0,p)
-    e_tmp = torch.BoolTensor(0)
-    t_tmp = torch.FloatTensor(0)
-    subjid_tmp = torch.LongTensor(0)
-    
-    for i in range(0,I):
-        imask = mask[i,0,:]
-        ilong = long[i,:,:]
-        ibase = base[i,:]
-        i_observed = np.where(imask.numpy()==1)[0]
-        
-        base_tmp = torch.cat([base_tmp, ibase.repeat(len(i_observed)-1,1)])
-        e_tmp = torch.cat([e_tmp, e[i].repeat(len(i_observed)-1)])
-        t_tmp = torch.cat([t_tmp, t[i].repeat(len(i_observed)-1)])
-        subjid_tmp = torch.cat([subjid_tmp, subjid[i].repeat(len(i_observed)-1)])
-        
-        for i_obs in range(1,len(i_observed)):
-            imask_tmp = torch.zeros(q,J)
-            imask_tmp[:,i_observed[0:i_obs]] = 1
-            ilong_tmp = ilong.detach().clone()
-            ilong_tmp[:,i_observed[i_obs]:J] = ilong[:,i_observed[i_obs-1]].unsqueeze(1).repeat(1,J-i_observed[i_obs])
-
-            mask_tmp = torch.cat([mask_tmp, imask_tmp.unsqueeze(0)])
-            long_tmp = torch.cat([long_tmp, ilong_tmp.unsqueeze(0)])
-
-    mask = torch.cat([mask, mask_tmp])
-    long = torch.cat([long, long_tmp])
-    base = torch.cat([base, base_tmp])
-    e = torch.cat([e, e_tmp])
-    t = torch.cat([t, t_tmp])
-    subjid = torch.cat([subjid, subjid_tmp])
-    return long, base, mask, e, t, subjid
-'''
 
 def augment(long, base, mask, e, t, n_cat=5):
     I = long.shape[0]
