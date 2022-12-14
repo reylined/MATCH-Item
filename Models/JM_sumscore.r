@@ -5,7 +5,7 @@ args = commandArgs(trailingOnly = TRUE)
 i_sim = as.numeric(args[1])
 set.seed(i_sim)
 
-setwd("G:/My Drive/Biostatistics/Dissertation/Item_Level/Simulation")
+setwd("PATH")
 
 dat = read.csv(paste0("Sim_datasets/sim_MD",i_sim,".csv"))
 dat = dat %>% select(id, obstime, event, time, sumscore)
