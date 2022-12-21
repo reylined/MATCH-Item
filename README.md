@@ -6,8 +6,10 @@ data simulation
 	- [data_simulation_md.py] generates item-level longitudinal and survival data
 	- [gen_sim_datasets.py] calls the sim_jm function from [data_simulation_md.py]
 	  to create 100 simulated datasets
+	  
 MATCH models
 - contains Pytorch models and support functions for MATCH and MATCH-item models
+
 simulation study
 - contains code to run simulation study for each model
 	- [JM_sumscore.R]     - corresponds to JM1 in simulation study
