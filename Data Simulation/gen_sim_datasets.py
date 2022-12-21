@@ -1,6 +1,7 @@
 import sys
-sys.path.append("PATH")
+sys.path.append("G:/My Drive/Biostatistics/Dissertation")
 from Item_Level.Simulation.data_simulation_md import simJM_item_MD
+#from Item_Level.Simulation.data_simulation_items import simJM_item
 
 import numpy as np
 import pandas as pd
