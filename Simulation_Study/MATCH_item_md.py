@@ -1,13 +1,14 @@
 import torch
 import torch.optim as optim
-import torch.nn as nn
+#import torch.nn as nn
 
 import sys
-sys.path.append("/content/gdrive/MyDrive/Colab Notebooks")
-from NN.Models.MATCH_item.MATCH import MATCH
-from NN.Models.MATCH_item.functions import (get_tensors, augment, format_output,
+#sys.path.append("/content/gdrive/MyDrive/Colab Notebooks")
+sys.path.append("C:/Users/reyli/Documents/GitHub/MATCH-Item")
+from MATCH_Models.MATCH_item.MATCH import MATCH
+from MATCH_Models.MATCH_item.functions import (get_tensors, augment, format_output,
                                     CE_loss, ordinalOHE, init_weights)
-from NN.Models.metrics import (AUC, Brier)
+from Simulation_Study.metrics import (AUC, Brier)
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -42,8 +43,10 @@ for i_sim in range(n_sim):
     print("i_sim:",i_sim)
     np.random.seed(i_sim)
     
-    path = "/content/gdrive/MyDrive/Biostatistics/Dissertation/Item_Level/Simulation/Sim_datasets/"
+    path = "C:/Users/reyli/Documents/GitHub/MATCH-Item/Data_Simulation/Datasets/"
     data_all = pd.read_csv(path+"sim_MD"+str(i_sim)+".csv")
+    
+    # Only observations occuring before the event time should be used for training
     data = data_all[data_all.obstime < data_all.time]
     data_bl = data.loc[data.obstime==0,:]
     
@@ -52,7 +55,7 @@ for i_sim in range(n_sim):
     other_vars = ["id","event","time","obstime"]
     
     ## split train/test
-    random_id = range(I) #np.random.permutation(range(I))
+    random_id = range(I)
     train_id = random_id[0:int(0.7*I)]
     test_id = random_id[int(0.7*I):I]
     
