@@ -1,0 +1,201 @@
+import torch
+import numpy as np
+import pandas as pd
+import math
+
+def get_tensors(df, long = ["Y1","Y2","Y3"], base = ["X1","X2"], obstime = "obstime", roundnum = 0.5):
+    '''
+    Changes batch data from dataframe to corresponding tensors for MATCH model
+
+    Parameters
+    ----------
+    df : Pandas Dataframe
+
+    Returns
+    -------
+    base,long :
+        3d tensor of data with shape (I (subjects), K (covariates), J (visits w/ padding))
+    e,t :
+        1d tensor of event indicator and event times (I)
+    mask :
+        3d tensor (1-obs, 0-padding) with shape (I, K, J)
+    '''
+    round_const = 1/roundnum
+    df.loc[:,"id_new"] = df.groupby(by="id").grouper.group_info[0] # assign id from 0 to num subjects
+    df.loc[:,"roundtime"] = (df.loc[:,obstime] * round_const).round() / round_const
+    if "visit" not in df:
+        df.loc[:,"visit"] = df.groupby(by="id").cumcount()
+    
+    I = len(np.unique(df.loc[:,"id"]))
+    max_len = int(np.max(df.loc[:,"roundtime"]) * round_const + 1)
+    if max_len < 20:
+        max_len = 20    
+
+    x_long = np.empty((I, len(long), max_len))
+    x_long[:,:,:] = np.NaN
+    x_base = np.zeros((I, len(base)))
+    mask = np.zeros((I, len(long), max_len), dtype=bool)
+    for index, row in df.iterrows():
+        ii = int(row.loc["id_new"])
+        jj = int(row.loc["roundtime"] * round_const)
+        x_long[ii,:,jj] = row.loc[long]
+        mask[ii,:,jj] = ~pd.isnull(row.loc[long]).values
+        if jj==0 & len(base)>0:
+            x_base[ii,:] = row.loc[base]
+    
+    # interpolate (fill from last observed then fill in reverse direction)
+    # aka fill left to right then right to left
+    for i in range(I):
+        for k in range(len(long)):
+            for j in range(max_len):
+                if j==0:
+                    val = x_long[i,k,j]
+                else:
+                    x = x_long[i,k,j]
+                    if np.isnan(x):
+                        x_long[i,k,j] = val
+                    else:
+                        val = x
+            for j in range(max_len-1,-1,-1):
+                if j==max_len-1:
+                    val = x_long[i,k,j]
+                else:
+                    x = x_long[i,k,j]
+                    if np.isnan(x):
+                        x_long[i,k,j] = val
+                    else:
+                        val = x
+                
+    x_long = torch.tensor(x_long).float()
+    x_base = torch.tensor(x_base).float()
+    mask = torch.tensor(mask).float()
+    e = torch.tensor(df.loc[df["visit"]==0,"event"].values).squeeze()
+    t = torch.tensor(df.loc[df["visit"]==0,"time"].values).squeeze()
+    obs_time = np.arange(0, max_len/2, roundnum)
+    
+    if len(base)>0:
+        return x_long, x_base, mask, e, t, obs_time
+    else: return x_long, mask, e, t, obs_time
+
+
+
+def ordinalOHE(x, ordinal=True, n_cat=5):
+    # regular OHE
+    if(ordinal is False):
+        x_encoded = torch.nn.functional.one_hot(x, num_classes=n_cat)
+    
+    if(ordinal is True):
+        
+        # Create tensor of 0 up to n_cat
+        # This represents the "ticks" on the thermometer
+        thermometer_ticks = torch.arange(n_cat)
+        
+        # Reshape the thermometer tick to broadcast to the input tensor's shape
+        # e.g., if tensor has shape (I,J,K), then thermometer_ticks becomes (1,1,1,n_cat)
+        view_shape = (1,) * x.dim() + (n_cat,)    
+        thermometer_ticks = thermometer_ticks.view(view_shape)
+        
+        # Unsqueeze input tensor to add new dimension for encoding
+        # e.g., (I,J,K) becomes (I,J,K,1)
+        x_expanded = x.unsqueeze(-1)
+        
+        # Compare input tensor to the thermometer ticks
+        # For each element, a row of booleans is produced
+        # e.g., if a value is 3, the comparison '3 > [0,1,2,3,4]' gives '[T,T,T,F,F]'
+        # Convert from boolean back to original dtype
+        x_encoded = (x_expanded > thermometer_ticks).to(dtype=x.dtype)
+    
+    return x_encoded
+
+
+
+def augment(long, base, mask, e, t, n_cat=5):
+    I = long.shape[0]
+    q = long.shape[1]
+    J = long.shape[3]
+    subjid = torch.arange(I)
+    
+    mask_tmp = torch.FloatTensor(0,q,J)
+    long_tmp = torch.FloatTensor(0,q,n_cat,J)
+    e_tmp = torch.BoolTensor(0)
+    t_tmp = torch.FloatTensor(0)
+    subjid_tmp = torch.LongTensor(0)
+    
+    if base is not None:
+        p = base.shape[1]
+        base_tmp = torch.FloatTensor(0,p)
+        
+    for i in range(0,I):
+        imask = mask[i,0,:]
+        ilong = long[i,:,:,:]
+        i_observed = np.where(imask.numpy()==1)[0]
+        
+        if base is not None:
+            ibase = base[i,:]
+            base_tmp = torch.cat([base_tmp, ibase.repeat(len(i_observed)-1,1)])
+        e_tmp = torch.cat([e_tmp, e[i].repeat(len(i_observed)-1)])
+        t_tmp = torch.cat([t_tmp, t[i].repeat(len(i_observed)-1)])
+        subjid_tmp = torch.cat([subjid_tmp, subjid[i].repeat(len(i_observed)-1)])
+        
+        for i_obs in range(1,len(i_observed)):
+            imask_tmp = torch.zeros(q,J)
+            imask_tmp[:,i_observed[0:i_obs]] = 1
+            ilong_tmp = ilong.detach().clone()
+            ilong_tmp[:,:,i_observed[i_obs]:J] = ilong[:,:,i_observed[i_obs-1]].unsqueeze(2).repeat(1,1,J-i_observed[i_obs])
+
+            mask_tmp = torch.cat([mask_tmp, imask_tmp.unsqueeze(0)])
+            long_tmp = torch.cat([long_tmp, ilong_tmp.unsqueeze(0)])
+
+    mask = torch.cat([mask, mask_tmp])
+    long = torch.cat([long, long_tmp])
+    e = torch.cat([e, e_tmp])
+    t = torch.cat([t, t_tmp])
+    subjid = torch.cat([subjid, subjid_tmp])
+    
+    if base is not None:
+        base = torch.cat([base, base_tmp])
+        return long, base, mask, e, t, subjid
+    else: return long, mask, e, t, subjid
+
+
+
+def format_output(obstime, mask, time, event, out_len=4):
+    mask = mask.numpy()
+    time = time.numpy()
+    event = event.numpy()
+    last_obs_index = mask.shape[2] - np.argmax(mask[:,0,::-1], axis=1) - 1  #index of last obs
+    last_obs_time = obstime[last_obs_index]
+    S = np.ceil(time - last_obs_time - 1).astype(int)
+    S = np.where(S>out_len-1, out_len-1, S)
+    
+    # 1 where event occurs, 0 otherwise. All 0 for censored.
+    e_filter = np.zeros([len(S),out_len])
+    for row_index, row in enumerate(e_filter):
+        if event[row_index]:
+            row[S[row_index]] = 1
+    
+    # 1 where event did not occur. 0 if event may occur.
+    s_filter = np.ones([len(S),out_len])
+    for row_index, row in enumerate(s_filter):
+        row[S[row_index]:] = 0
+        #if event[row_index]:
+        #    row[S[row_index]] = 0
+        #else:
+        #    row[S[row_index]:] = 0
+            
+    s_filter = torch.tensor(s_filter, dtype=torch.float)
+    e_filter = torch.tensor(e_filter, dtype=torch.float)
+    return s_filter, e_filter
+
+
+
+def CE_loss(yhat, s_filter, e_filter):
+    nll_loss = torch.log(yhat+1e-10)*e_filter + torch.log(1-yhat+1e-10)*s_filter
+    nll_loss = nll_loss.sum()/(s_filter.sum()+e_filter.sum())
+    return -nll_loss
+
+
+
+def init_weights(m):
+    if type(m) == torch.nn.Linear:
+        torch.nn.init.xavier_uniform_(m.weight)
