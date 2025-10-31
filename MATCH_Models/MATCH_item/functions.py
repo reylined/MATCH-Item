@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import pandas as pd
-import math
+#import math
 
 def get_tensors(df, long = ["Y1","Y2","Y3"], base = ["X1","X2"], obstime = "obstime", roundnum = 0.5):
     '''
@@ -178,10 +178,6 @@ def format_output(obstime, mask, time, event, out_len=4):
     s_filter = np.ones([len(S),out_len])
     for row_index, row in enumerate(s_filter):
         row[S[row_index]:] = 0
-        #if event[row_index]:
-        #    row[S[row_index]] = 0
-        #else:
-        #    row[S[row_index]:] = 0
             
     s_filter = torch.tensor(s_filter, dtype=torch.float)
     e_filter = torch.tensor(e_filter, dtype=torch.float)
@@ -195,7 +191,8 @@ def CE_loss(yhat, s_filter, e_filter):
     return -nll_loss
 
 
-
 def init_weights(m):
     if type(m) == torch.nn.Linear:
         torch.nn.init.xavier_uniform_(m.weight)
+
+
