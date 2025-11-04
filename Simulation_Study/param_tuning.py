@@ -87,7 +87,7 @@ def train_match(config, fixed_param, train_data_tensors):
 
 
 
-def test_loss(model, fixed_param, test_data_tensors):
+def get_test_loss(model, fixed_param, test_data_tensors):
     
     test_long = test_data_tensors["test_long"]
     test_mask = test_data_tensors["test_mask"]
@@ -172,12 +172,13 @@ for i_sim in range(n_sim):
         
         model = train_match(param_, fixed_param, train_data_tensors)
         
-        test_loss = test_loss(model, fixed_param, test_data_tensors)
+        test_loss = get_test_loss(model, fixed_param, test_data_tensors)
         param_loss.get(str(param_)).append(test_loss.item())
         
 
 
 param_loss_mean = {k:sum(v)/len(v) for k,v in param_loss.items()}
+print(param_loss_mean)
 
-min(param_loss_mean, key = param_loss_mean.get)
+print(min(param_loss_mean, key = param_loss_mean.get))
 
