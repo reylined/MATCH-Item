@@ -32,7 +32,7 @@ def get_tensors(df, long = ["Y1","Y2","Y3"], base = ["X1","X2"], obstime = "obst
         max_len = 20    
 
     x_long = np.empty((I, len(long), max_len))
-    x_long[:,:,:] = np.NaN
+    x_long[:,:,:] = np.nan
     x_base = np.zeros((I, len(base)))
     mask = np.zeros((I, len(long), max_len), dtype=bool)
     for index, row in df.iterrows():
