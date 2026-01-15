@@ -19,8 +19,8 @@ import pickle
 #seed = int(sys.argv[1])
 
 # Ablation study settings
-# One Hot Encoding
-ordinal_enc = False
+# Thermometer Encoding
+ordinal_enc = True
 positive_constraint = "none"
 
 # Simulation setting
@@ -241,7 +241,7 @@ results = {"AUC":AUC_array,
 }
 
 
-outfile = open('MATCH-Item/Simulation_Study/Results/ablation_OHE.pickle', 'wb')
+outfile = open('MATCH-Item/Simulation_Study/Results/ablation_thermometer.pickle', 'wb')
 pickle.dump(results, outfile)
 outfile.close() 
 

@@ -19,9 +19,9 @@ import pickle
 #seed = int(sys.argv[1])
 
 # Ablation study settings
-# One Hot Encoding
-ordinal_enc = False
-positive_constraint = "none"
+# Ordinal Encoding (Softplus)
+ordinal_enc = True
+positive_constraint = "softplus"
 
 # Simulation setting
 I = 1000
@@ -241,7 +241,7 @@ results = {"AUC":AUC_array,
 }
 
 
-outfile = open('MATCH-Item/Simulation_Study/Results/ablation_OHE.pickle', 'wb')
+outfile = open('MATCH-Item/Simulation_Study/Results/ablation_ordinal_softplus.pickle', 'wb')
 pickle.dump(results, outfile)
 outfile.close() 
 
