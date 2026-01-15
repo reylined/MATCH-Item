@@ -3,11 +3,11 @@ import torch.optim as optim
 import torch.nn as nn
 
 import sys
-sys.path.append("/content/gdrive/MyDrive/Colab Notebooks")
-from NN.Models.MATCH.MATCH import MATCH
-from NN.Models.MATCH.functions import (get_tensors, augment, format_output,
+sys.path.append("/content/gdrive/MyDrive/Colab Notebooks/MATCH-Item")
+from MATCH_Models.MATCH.MATCH import MATCH
+from MATCH_Models.MATCH.functions import (get_tensors, augment, format_output,
                                             CE_loss, init_weights)
-from NN.Models.metrics import (AUC, Brier)
+from MATCH_Models.metrics import (AUC, Brier)
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -81,7 +81,7 @@ for i_sim in range(n_sim):
     model = model.train()
     optimizer = optim.Adam(model.parameters())
     
-    n_epoch = 20
+    n_epoch = 30
     batch_size = 32
     
     loss_values = []
@@ -179,6 +179,6 @@ results = {"AUC":AUC_array,
            "t_iBS":true_iBS_array
 }
 
-outfile = open('Item_Level/Simulation/Results/MATCH_cont2.pickle', 'wb')
+outfile = open('MATCH-Item/Simulation_Study/Results/MATCH_cont2_md.pickle', 'wb')
 pickle.dump(results, outfile)
 outfile.close() 

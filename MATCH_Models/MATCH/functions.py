@@ -21,7 +21,7 @@ def get_tensors(df, long = ["Y1","Y2","Y3"], base = ["X1","X2"], obstime = "obst
         3d tensor (1-obs, 0-padding) with shape (I, K, J)
     '''
     round_const = 1/roundnum
-    df.loc[:,"id_new"] = df.groupby(by="id").grouper.group_info[0] # assign id from 0 to num subjects
+    df.loc[:, "id_new"] = df.groupby(by="id").ngroup() # assign id from 0 to num subjects
     df.loc[:,"roundtime"] = (df.loc[:,obstime] * round_const).round() / round_const
     if "visit" not in df:
         df.loc[:,"visit"] = df.groupby(by="id").cumcount()
@@ -32,7 +32,7 @@ def get_tensors(df, long = ["Y1","Y2","Y3"], base = ["X1","X2"], obstime = "obst
         max_len = 20    
 
     x_long = np.empty((I, len(long), max_len))
-    x_long[:,:,:] = np.NaN
+    x_long[:,:,:] = np.nan
     x_base = np.zeros((I, len(base)))
     mask = np.zeros((I, len(long), max_len), dtype=bool)
     for index, row in df.iterrows():
@@ -146,15 +146,10 @@ def format_output(obstime, mask, time, event, out_len=4):
     s_filter = np.ones([len(S),out_len])
     for row_index, row in enumerate(s_filter):
         row[S[row_index]:] = 0
-        #if event[row_index]:
-        #    row[S[row_index]] = 0
-        #else:
-        #    row[S[row_index]:] = 0
             
     s_filter = torch.tensor(s_filter, dtype=torch.float)
     e_filter = torch.tensor(e_filter, dtype=torch.float)
     return s_filter, e_filter
-
 
     
 def CE_loss(yhat, s_filter, e_filter):

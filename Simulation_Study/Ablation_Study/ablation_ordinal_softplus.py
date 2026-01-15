@@ -60,7 +60,7 @@ for i_sim in range(n_sim):
     np.random.seed(i_sim)
     
     path = "/content/gdrive/MyDrive/Biostatistics/Dissertation/Item_Level/Simulation/Sim_datasets/"
-    data_all = pd.read_csv(path+"sim_MD"+str(i_sim)+".csv")
+    data_all = pd.read_csv(path+"sim_MD_ablation"+str(i_sim)+".csv")
     
     # Only observations occuring before the event time should be used for training
     data = data_all[data_all.obstime < data_all.time]
@@ -241,6 +241,7 @@ results = {"AUC":AUC_array,
 }
 
 
-outfile = open('MATCH-Item/Simulation_Study/Results/MATCH_item-md.pickle', 'wb')
+outfile = open('MATCH-Item/Simulation_Study/Results/ablation_ordinal_softplus.pickle', 'wb')
 pickle.dump(results, outfile)
 outfile.close() 
+
