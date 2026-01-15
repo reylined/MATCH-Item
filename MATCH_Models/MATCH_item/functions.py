@@ -21,7 +21,7 @@ def get_tensors(df, long = ["Y1","Y2","Y3"], base = ["X1","X2"], obstime = "obst
         3d tensor (1-obs, 0-padding) with shape (I, K, J)
     '''
     round_const = 1/roundnum
-    df.loc[:,"id_new"] = df.groupby(by="id").grouper.group_info[0] # assign id from 0 to num subjects
+    df.loc[:, "id_new"] = df.groupby(by="id").ngroup() # assign id from 0 to num subjects
     df.loc[:,"roundtime"] = (df.loc[:,obstime] * round_const).round() / round_const
     if "visit" not in df:
         df.loc[:,"visit"] = df.groupby(by="id").cumcount()
