@@ -5,7 +5,7 @@ import torch.nn.functional as F
 class MATCH(nn.Module):
     def __init__(self, n_items, n_cat, n_base, out_len,
                  l1=16, l23=16, l4=16, lmask=8, llin=16,
-                 pos_constraint = "relu"):
+                 pos_constraint = "softplus"):
         super().__init__()
         
         self.item = conv_block(in_channels=n_items*n_cat, out_channels=n_items, dprob=0,
@@ -24,11 +24,11 @@ class MATCH(nn.Module):
         self.long4 = conv_block(l23 + lmask, l4, dprob=0.4, kernel_size=3)
         
         self.survival = nn.Sequential(
-            nn.Linear(l4 + n_base, llin),
+            nn.Linear(l4 + n_base, llin, bias=False),
             nn.ReLU(),
             nn.Dropout(0.2),
             nn.BatchNorm1d(llin),
-            nn.Linear(llin, llin),
+            nn.Linear(llin, llin, bias=False),
             nn.ReLU(),
             nn.Dropout(0.2),
             nn.BatchNorm1d(llin),
@@ -95,4 +95,3 @@ class conv_block(nn.Module):
         
     def forward(self, x):
             return self.convolution(x)
-

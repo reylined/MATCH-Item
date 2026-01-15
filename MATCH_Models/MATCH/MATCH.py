@@ -5,27 +5,27 @@ import torch.nn.functional as F
 class MATCH(nn.Module):
     def __init__(self, n_long, n_base, out_len):
         super().__init__()
-        self.long1 = conv_block(n_long, 32, kernel_size=3, padding=1)
+        self.long1 = conv_block(n_long, 16, kernel_size=3, padding=1)
         self.mask1 = conv_block(n_long, 8, kernel_size=3, padding=1)
         
-        self.long2 = conv_block(40, 32, kernel_size=3, padding=1)
+        self.long2 = conv_block(24, 16, kernel_size=3, padding=1)
         self.mask2 = conv_block(8, 8, kernel_size=3, padding=1)
         
-        self.long3 = conv_block(40, 32, kernel_size=3, padding=1)
+        self.long3 = conv_block(24, 16, kernel_size=3, padding=1)
         self.mask3 = conv_block(8, 8, kernel_size=3, padding=1)
         
-        self.long4 = conv_block(40, 32, kernel_size=3)
+        self.long4 = conv_block(24, 16, kernel_size=3)
         
         self.survival = nn.Sequential(
-            nn.Linear(32 + n_base, 64),
+            nn.Linear(16 + n_base, 16),
+            nn.BatchNorm1d(16),
             nn.ReLU(),
             nn.Dropout(0.2),
-            nn.BatchNorm1d(64),
-            nn.Linear(64, 64),
+            nn.Linear(16, 16),
+            nn.BatchNorm1d(16),
             nn.ReLU(),
             nn.Dropout(0.2),
-            nn.BatchNorm1d(64),
-            nn.Linear(64,out_len)
+            nn.Linear(16,out_len)
         )
             
     
@@ -56,9 +56,9 @@ class conv_block(nn.Module):
         super().__init__()
         self.convolution = nn.Sequential(
             nn.Conv1d(in_channels, out_channels, padding_mode='replicate', **kwargs),
+            nn.BatchNorm1d(out_channels),
             nn.ReLU(),
-            nn.Dropout(0.4),
-            nn.BatchNorm1d(out_channels)
+            nn.Dropout(0.4)
             )
     def forward(self, x):
             return self.convolution(x)
