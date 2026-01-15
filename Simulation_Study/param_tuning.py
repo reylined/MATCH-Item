@@ -2,10 +2,10 @@ import torch
 import torch.optim as optim
 
 import sys
-#sys.path.append("/content/gdrive/MyDrive/Colab Notebooks")
-sys.path.append("C:/Users/reyli/Documents/GitHub/MATCH-Item")
-from MATCH_Models.MATCH_item.MATCH import MATCH
-from MATCH_Models.MATCH_item.functions import (get_tensors, augment, format_output,
+sys.path.append("/content/gdrive/MyDrive/Colab Notebooks")
+#sys.path.append("C:/Users/reyli/Documents/GitHub/MATCH-Item")
+from Item_Level.MATCH_Models.MATCH_item.MATCH import MATCH
+from Item_Level.MATCH_Models.MATCH_item.functions import (get_tensors, augment, format_output,
                                     CE_loss, ordinalOHE, init_weights)
 import numpy as np
 import pandas as pd
@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 pd.options.mode.chained_assignment = None
 
 from sklearn.model_selection import ParameterGrid
+import pickle
 
 I = 1000
 num_items = [23,10]
@@ -22,15 +23,22 @@ obstime = np.array([0,1,2,3,4,5,6,7,8,9,10])
 n_sim = 10
 
 params = {
-    "lconv": [8, 16, 32],
-    "lmask": [8, 16, 32],
-    "llin": [8, 16, 32]
+    "lconv": [16, 32],
+    "lmask": [8, 16],
+    "llin": [16, 32]
 }
 param_grid = ParameterGrid(params)
-param_loss = {}
-for param_ in param_grid:
-    param_loss.update({str(param_): []})
 
+
+# If previous results exist, open. Otherwise create new dict for storing results across different simulation runs
+try:
+    outfile = open("Item_Level/Simulation/Results/param_loss.pickle", "rb+")
+    param_loss = pickle.load(outfile)
+except (OSError) as e:
+    outfile = open('Item_Level/Simulation/Results/param_loss.pickle', 'wb')
+    param_loss = {}
+    for param_ in param_grid:
+        param_loss.update({str(param_): np.full(n_sim, np.nan)})
 
 
 def train_match(config, fixed_param, train_data_tensors):
@@ -39,6 +47,7 @@ def train_match(config, fixed_param, train_data_tensors):
     train_mask = train_data_tensors["train_mask"]
     train_t = train_data_tensors["train_t"]
     train_e = train_data_tensors["train_e"]
+    subjid = train_data_tensors["subjid"]
     
     model = MATCH(n_items = fixed_param["n_items"],
                   n_cat = fixed_param["n_cat"],
@@ -71,7 +80,7 @@ def train_match(config, fixed_param, train_data_tensors):
             batch_t = train_t[indices]
             batch_e = train_e[indices]
             
-            if len(indices)>1: #drop if last batch size is 1
+            if indices.shape[0] > 1: #drop if last batch size is 1
                 yhat_surv = torch.softmax(model(batch_long.float(), None, batch_mask), dim=1)
                 s_filter, e_filter = format_output(obs_time, batch_mask, batch_t, batch_e, fixed_param["out_len"])
                 loss = CE_loss(yhat_surv, s_filter, e_filter)
@@ -109,7 +118,7 @@ for i_sim in range(n_sim):
     print("i_sim:",i_sim)
     np.random.seed(i_sim)
     
-    path = "G:/My Drive/Biostatistics/Dissertation/Item_Level/Simulation/Sim_datasets/"
+    path = "/content/gdrive/MyDrive/Biostatistics/Dissertation/Item_Level/Simulation/Sim_datasets/"
     data_all = pd.read_csv(path+"sim_MD_GS"+str(i_sim)+".csv")
     
     # Only observations occuring before the event time should be used for training
@@ -148,7 +157,8 @@ for i_sim in range(n_sim):
         "train_long": train_long,
         "train_mask": train_mask,
         "train_e": train_e,
-        "train_t": train_t
+        "train_t": train_t,
+        "subjid": subjid
     }
     
     test_long, test_mask, test_e, test_t, obs_time = get_tensors(df=test_data.copy(),
@@ -169,16 +179,28 @@ for i_sim in range(n_sim):
     
     # loop over parameters
     for param_ in param_grid:
+        print(param_)
         
         model = train_match(param_, fixed_param, train_data_tensors)
         
         test_loss = get_test_loss(model, fixed_param, test_data_tensors)
-        param_loss.get(str(param_)).append(test_loss.item())
+        param_loss.get(str(param_))[i_sim] = test_loss.item()
+    
+    # checkpoint to save results
+    pickle.dump(param_loss, outfile)
+    print(param_loss)
+
+# close the checkpoint results file
+outfile.close() 
         
 
 
-param_loss_mean = {k:sum(v)/len(v) for k,v in param_loss.items()}
+
+
+# average over simulations and print param combination with lowest loss
+'''
+param_loss_mean = {k:np.mean(v) for k,v in param_loss.items()}
 print(param_loss_mean)
 
 print(min(param_loss_mean, key = param_loss_mean.get))
-
+'''
